@@ -1,66 +1,89 @@
 package jt.katas.tennis
 import jt.katas.tennis.TennisGameTypes._
 import org.scalatest.FunSpec
+import org.scalatest.prop.TableDrivenPropertyChecks._
 
 /**
  * Created by Jonathan Taylor on 25/01/2014.
  */
 class TennisGameSpec extends FunSpec {
 
+  private def generatePoints(numPoints1: Int, numPoints2: Int): Seq[Point] = {
+    val total = numPoints1 + numPoints2
+    val alternationLimit = 2 * math.min(numPoints1, numPoints2)
+    Seq.tabulate(total)(n => {
+      if (n < alternationLimit) {
+        if (n % 2 == 0) "A" else "B"
+      }
+      else {
+        if (numPoints1 > numPoints2) "A" else "B"
+      }
+    })
+  }
+
   describe("TennisGame tests") {
 
-    describe("raw points") {
+    describe("raw points score") {
 
-      it("has a score of (0, 0) when no points have been scored") {
-        assertResult(new GameScore(0, 0))(TennisGame.gameScore(Seq.empty))
-      }
+      val rawPointsScoreTable = Table(
+        ("numPoints1", "numPoints2"),
+        (0,            0),
+        (1,            0),
+        (2,            0),
+        (3,            0),
+        (1,            1),
+        (1,            2),
+        (1,            3),
+        (3,            3),
+        (4,            3),
+        (3,            4),
+        (4,            4),
+        (5,            5),
+        (6,            4),
+        (4,            6)
+      )
 
-      it("has a score of (1, 0) when PlayerA has scored a point") {
-        val points = Seq[Point]("A")
-        assertResult(new GameScore(1, 0))(TennisGame.gameScore(points))
-      }
-
-      it("has a score of (3, 1) when PlayerA has scored 3 points and PlayerB has scored 1 point") {
-        val points = Seq[Point]("A", "A", "A", "B")
-        assertResult(new GameScore(3, 1))(TennisGame.gameScore(points))
+      it("has the correct raw points score when various numbers of points have been won") {
+        forAll (rawPointsScoreTable) { (numPoints1, numPoints2) =>
+          val expected = new GameScore(numPoints1, numPoints2)
+          val points = generatePoints(numPoints1, numPoints2)
+          val actual = TennisGame.gameScore(points)
+          assertResult(expected)(actual)
+        }
       }
     }
 
-    describe("formatted game scores") {
+    describe("display score") {
 
-      it("""has a score of "0 - 0" when no points have been scored""") {
-        val actual = TennisGame.displayScore(Seq.empty)
-        assertResult("0 - 0")(actual)
-      }
+      val displayScoreTable = Table(
+        ("numPoints1", "numPoints2", "expected"),
+        (0,            0,            "0 - 0"),
+        (1,            0,            "15 - 0"),
+        (2,            0,            "30 - 0"),
+        (3,            0,            "40 - 0"),
+        (1,            1,            "15 - 15"),
+        (1,            2,            "15 - 30"),
+        (1,            3,            "15 - 40"),
+        (2,            2,            "30 - 30"),
+        (3,            3,            "Deuce"),
+        (4,            3,            "Advantage PlayerA"),
+        (3,            4,            "Advantage PlayerB"),
+        (4,            4,            "Deuce"),
+        (5,            4,            "Advantage PlayerA"),
+        (4,            5,            "Advantage PlayerB"),
+        (5,            5,            "Deuce"),
+        (4,            0,            "Game PlayerA"),
+        (0,            4,            "Game PlayerB"),
+        (5,            3,            "Game PlayerA"),
+        (3,            5,            "Game PlayerB")
+      )
 
-      it("""has a score of "15 - 0" when PlayerA has scored a point""") {
-        val points = Seq[Point]("A")
-        val actual = TennisGame.displayScore(points)
-        assertResult("15 - 0")(actual)
-      }
-
-      it("""has a score of "40 - 15" when PlayerA has scored 3 points and PlayerB has scored 1 point""") {
-        val points = Seq[Point]("A", "A", "A", "B")
-        val actual = TennisGame.displayScore(points)
-        assertResult("40 - 15")(actual)
-      }
-
-      it("""has a score of "Deuce" when both players have scored 3 points""") {
-        val points = Seq[Point]("A", "A", "A", "B", "B", "B")
-        val actual = TennisGame.displayScore(points)
-        assertResult("Deuce")(actual)
-      }
-
-      it("""has a score of "Advantage PlayerA" when PlayerA has scored 4 points and PlayerB has scored 3 points""") {
-        val points = Seq[Point]("A", "A", "A", "B", "B", "B", "A")
-        val actual = TennisGame.displayScore(points)
-        assertResult("Advantage PlayerA")(actual)
-      }
-
-      it("""has a score of "Game PlayerA" when PlayerA has scored 5 points and PlayerB has scored 3 points""") {
-        val points = Seq[Point]("A", "A", "A", "B", "B", "B", "A", "A")
-        val actual = TennisGame.displayScore(points)
-        assertResult("Game PlayerA")(actual)
+      it("has the correct display score when various numbers of points have been won") {
+        forAll (displayScoreTable) { (numPoints1, numPoints2, expected) =>
+          val points = generatePoints(numPoints1, numPoints2)
+          val actual = TennisGame.displayScore(points)
+          assertResult(expected)(actual)
+        }
       }
     }
   }
